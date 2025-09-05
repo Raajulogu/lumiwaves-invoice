@@ -52,6 +52,7 @@ export default function InvoiceGenerator() {
   const [discount, setDiscount] = useState(0)
   const [paymentMode, setPaymentMode] = useState("")
   const [invoiceNumber, setInvoiceNumber] = useState("")
+  const [gstNumber, setGstNumber] = useState("");
   const [showPreview, setShowPreview] = useState(false)
 
   // Generate unique invoice number on component mount
@@ -161,7 +162,21 @@ export default function InvoiceGenerator() {
       </header>
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* GST Number */}
+        <div className="space-y-2 text-primary text-sm font-medium max-w-[400px]">
+          <Label htmlFor="gstNumber" className="text-sm font-medium">
+            GST Number
+          </Label>
+          <Input
+            id="gstNumber"
+            placeholder="Enter GST number"
+            value={gstNumber}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setGstNumber(e.target.value)}
+            className="transition-all duration-200 focus:ring-2 focus:ring-accent/50"
+          />
+        </div>
         <div className="grid lg:grid-cols-2 gap-8">
+
           {/* Invoice Form */}
           <div className="space-y-6">
             <Card className="shadow-lg border-0 bg-card/50 backdrop-blur-sm">
@@ -417,118 +432,122 @@ export default function InvoiceGenerator() {
 
             {showPreview && (
               <div id="print-area">
-                <Card 
-                id="invoice-card"
-                className="shadow-lg border-0 bg-card/50 backdrop-blur-sm print:shadow-none print:border print:bg-white">
-                <CardContent className="p-8 print:p-6">
-                  {/* Invoice Header */}
-                  <div className="text-center mb-8 print:mb-6">
-                    <div className="flex items-center justify-center space-x-3 mb-2">
-                      <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                        <Zap className="w-8 h-8 text-primary-foreground" />
+                <Card
+                  id="invoice-card"
+                  className="shadow-lg border-0 bg-card/50 backdrop-blur-sm print:shadow-none print:border print:bg-white">
+                  <CardContent className="p-8 print:p-6">
+                    {/* Invoice Header */}
+                    <div className="text-center mb-8 print:mb-6">
+                      <div className="flex items-center justify-center space-x-3 mb-2">
+                        <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
+                          <Zap className="w-8 h-8 text-primary-foreground" />
+                        </div>
+                        <div>
+                          <h1 className="text-3xl font-bold font-mono text-primary">Lumiwaves Automation</h1>
+                          <p className="text-muted-foreground">Smart Living, Simplified</p>
+                        </div>
                       </div>
+                      <div className="text-sm text-muted-foreground">
+                        <p>123 Tech Street, Innovation City, IN 560001</p>
+                        <p>Phone: +91 98765 43210 | Email: info@lumiwaves.com</p>
+                      </div>
+                    </div>
+
+                    <Separator className="mb-6" />
+
+                    {/* Invoice Details */}
+                    <div className="grid grid-cols-2 gap-8 mb-8">
                       <div>
-                        <h1 className="text-3xl font-bold font-mono text-primary">Lumiwaves Automation</h1>
-                        <p className="text-muted-foreground">Smart Living, Simplified</p>
+                        <h3 className="font-semibold text-primary mb-3">Bill To:</h3>
+                        <div className="space-y-1 text-sm">
+                          <p className="font-medium">{customerInfo.name || "Customer Name"}</p>
+                          <p className="text-muted-foreground">{customerInfo.address || "Customer Address"}</p>
+                          <p className="text-muted-foreground">{customerInfo.email || "customer@email.com"}</p>
+                          <p className="text-muted-foreground">{customerInfo.phone || "Phone Number"}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="space-y-2 text-sm">
+                          <div>
+                            <span className="text-muted-foreground">Invoice #: </span>
+                            <span className="font-semibold">{invoiceNumber}</span>
+                          </div>
+                          {gstNumber && <div>
+                            <span className="text-muted-foreground">GST #: </span>
+                            <span className="font-semibold">{gstNumber}</span>
+                          </div>}
+                          <div>
+                            <span className="text-muted-foreground">Date: </span>
+                            <span className="font-semibold">{new Date().toLocaleDateString()}</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Payment: </span>
+                            <span className="font-semibold capitalize">{paymentMode || "Not Selected"}</span>
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      <p>123 Tech Street, Innovation City, IN 560001</p>
-                      <p>Phone: +91 98765 43210 | Email: info@lumiwaves.com</p>
-                    </div>
-                  </div>
 
-                  <Separator className="mb-6" />
-
-                  {/* Invoice Details */}
-                  <div className="grid grid-cols-2 gap-8 mb-8">
-                    <div>
-                      <h3 className="font-semibold text-primary mb-3">Bill To:</h3>
-                      <div className="space-y-1 text-sm">
-                        <p className="font-medium">{customerInfo.name || "Customer Name"}</p>
-                        <p className="text-muted-foreground">{customerInfo.address || "Customer Address"}</p>
-                        <p className="text-muted-foreground">{customerInfo.email || "customer@email.com"}</p>
-                        <p className="text-muted-foreground">{customerInfo.phone || "Phone Number"}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="space-y-2 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Invoice #: </span>
-                          <span className="font-semibold">{invoiceNumber}</span>
+                    {/* Items Table */}
+                    <div className="mb-8">
+                      <div className="border border-border rounded-lg overflow-hidden">
+                        <div className="bg-primary/5 px-4 py-3 border-b border-border">
+                          <div className="grid grid-cols-12 gap-2 text-sm font-semibold text-primary">
+                            <div className="col-span-4">Item</div>
+                            <div className="col-span-2 text-center">Qty</div>
+                            <div className="col-span-2 text-right">Price</div>
+                            <div className="col-span-2 text-right">Tax</div>
+                            <div className="col-span-2 text-right">Total</div>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground">Date: </span>
-                          <span className="font-semibold">{new Date().toLocaleDateString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Payment: </span>
-                          <span className="font-semibold capitalize">{paymentMode || "Not Selected"}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Items Table */}
-                  <div className="mb-8">
-                    <div className="border border-border rounded-lg overflow-hidden">
-                      <div className="bg-primary/5 px-4 py-3 border-b border-border">
-                        <div className="grid grid-cols-12 gap-2 text-sm font-semibold text-primary">
-                          <div className="col-span-4">Item</div>
-                          <div className="col-span-2 text-center">Qty</div>
-                          <div className="col-span-2 text-right">Price</div>
-                          <div className="col-span-2 text-right">Tax</div>
-                          <div className="col-span-2 text-right">Total</div>
-                        </div>
-                      </div>
-                      <div className="divide-y divide-border">
-                        {items.map((item) => (
-                          <div key={item.id} className="px-4 py-3">
-                            <div className="grid grid-cols-12 gap-2 text-sm">
-                              <div className="col-span-4 font-medium">{item.product || "Product Name"}</div>
-                              <div className="col-span-2 text-center">{item.quantity}</div>
-                              <div className="col-span-2 text-right">₹{item.price.toFixed(2)}</div>
-                              <div className="col-span-2 text-right">{item.tax}%</div>
-                              <div className="col-span-2 text-right font-semibold">
-                                ₹{(item.quantity * item.price * (1 + item.tax / 100)).toFixed(2)}
+                        <div className="divide-y divide-border">
+                          {items.map((item) => (
+                            <div key={item.id} className="px-4 py-3">
+                              <div className="grid grid-cols-12 gap-2 text-sm">
+                                <div className="col-span-4 font-medium">{item.product || "Product Name"}</div>
+                                <div className="col-span-2 text-center">{item.quantity}</div>
+                                <div className="col-span-2 text-right">₹{item.price.toFixed(2)}</div>
+                                <div className="col-span-2 text-right">{item.tax}%</div>
+                                <div className="col-span-2 text-right font-semibold">
+                                  ₹{(item.quantity * item.price * (1 + item.tax / 100)).toFixed(2)}
+                                </div>
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Totals */}
-                  <div className="flex justify-end mb-8">
-                    <div className="w-64 space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span>Subtotal:</span>
-                        <span>₹{calculateSubtotal().toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Tax:</span>
-                        <span>₹{calculateTotalTax().toFixed(2)}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span>Discount ({discount}%):</span>
-                        <span>-₹{((calculateSubtotal() * discount) / 100).toFixed(2)}</span>
-                      </div>
-                      <Separator />
-                      <div className="flex justify-between font-bold text-lg text-primary">
-                        <span>Total:</span>
-                        <span>₹{calculateTotal().toFixed(2)}</span>
+                    {/* Totals */}
+                    <div className="flex justify-end mb-8">
+                      <div className="w-64 space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span>Subtotal:</span>
+                          <span>₹{calculateSubtotal().toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Tax:</span>
+                          <span>₹{calculateTotalTax().toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span>Discount ({discount}%):</span>
+                          <span>-₹{((calculateSubtotal() * discount) / 100).toFixed(2)}</span>
+                        </div>
+                        <Separator />
+                        <div className="flex justify-between font-bold text-lg text-primary">
+                          <span>Total:</span>
+                          <span>₹{calculateTotal().toFixed(2)}</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Footer */}
-                  <div className="text-center text-sm text-muted-foreground border-t border-border pt-4">
-                    <p className="mb-2">Thank you for choosing Lumiwaves Automation!</p>
-                    <p>Authorized Signature: _________________</p>
-                  </div>
-                </CardContent>
-              </Card>
+                    {/* Footer */}
+                    <div className="text-center text-sm text-muted-foreground border-t border-border pt-4">
+                      <p className="mb-2">Thank you for choosing Lumiwaves Automation!</p>
+                      <p>Authorized Signature: _________________</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             )}
           </div>
