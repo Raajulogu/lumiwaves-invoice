@@ -1,0 +1,167 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import "tw-animate-css";
+
+:root {
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.3 0 0);
+  --card: oklch(0.98 0 0);
+  --card-foreground: oklch(0.15 0.05 240);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.3 0 0);
+  --primary: oklch(0.15 0.05 240);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.7 0.15 85);
+  --secondary-foreground: oklch(0.15 0.05 240);
+  --muted: oklch(0.96 0 0);
+  --muted-foreground: oklch(0.3 0 0);
+  --accent: oklch(0.7 0.15 85);
+  --accent-foreground: oklch(0.15 0.05 240);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(1 0 0);
+  --border: oklch(0.9 0 0);
+  --input: oklch(1 0 0);
+  --ring: oklch(0.7 0.15 85);
+  --chart-1: oklch(0.15 0.05 240);
+  --chart-2: oklch(0.7 0.15 85);
+  --chart-3: oklch(0.3 0 0);
+  --chart-4: oklch(0.96 0 0);
+  --chart-5: oklch(1 0 0);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.96 0 0);
+  --sidebar-foreground: oklch(0.3 0 0);
+  --sidebar-primary: oklch(0.15 0.05 240);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.7 0.15 85);
+  --sidebar-accent-foreground: oklch(0.15 0.05 240);
+  --sidebar-border: oklch(0.9 0 0);
+  --sidebar-ring: oklch(0.7 0.15 85);
+  --font-inter: "Inter", sans-serif;
+  --font-space-grotesk: "Space Grotesk", monospace;
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-space-grotesk);
+}
+
+.dark {
+  --background: oklch(0.08 0.02 240);
+  --foreground: oklch(0.95 0 0);
+  --card: oklch(0.12 0.02 240);
+  --card-foreground: oklch(0.95 0 0);
+  --popover: oklch(0.08 0.02 240);
+  --popover-foreground: oklch(0.95 0 0);
+  --primary: oklch(0.7 0.15 85);
+  --primary-foreground: oklch(0.08 0.02 240);
+  --secondary: oklch(0.15 0.05 240);
+  --secondary-foreground: oklch(0.95 0 0);
+  --muted: oklch(0.15 0.02 240);
+  --muted-foreground: oklch(0.7 0 0);
+  --accent: oklch(0.7 0.15 85);
+  --accent-foreground: oklch(0.08 0.02 240);
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: oklch(0.2 0.02 240);
+  --input: oklch(0.12 0.02 240);
+  --ring: oklch(0.7 0.15 85);
+  --chart-1: oklch(0.7 0.15 85);
+  --chart-2: oklch(0.15 0.05 240);
+  --chart-3: oklch(0.95 0 0);
+  --chart-4: oklch(0.15 0.02 240);
+  --chart-5: oklch(0.08 0.02 240);
+  --sidebar: oklch(0.08 0.02 240);
+  --sidebar-foreground: oklch(0.95 0 0);
+  --sidebar-primary: oklch(0.7 0.15 85);
+  --sidebar-primary-foreground: oklch(0.08 0.02 240);
+  --sidebar-accent: oklch(0.15 0.02 240);
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.2 0.02 240);
+  --sidebar-ring: oklch(0.7 0.15 85);
+}
+
+/* * {
+  border-width: 1px;
+  border-style: solid;
+  border-color: var(--border);
+  outline: 2px solid var(--ring);
+  outline-offset: 0px;
+} */
+
+
+/* ---------- Print styles: place in globals.css (or main stylesheet) ---------- */
+
+/* make print colors faithful where browser supports it */
+.printing-invoice *,
+#print-area *,
+#invoice-card {
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+/* General print rules */
+@media print {
+  html, body {
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Hide everything except the print area */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Only the invoice and its children are visible */
+  #print-area, #invoice-card * {
+    visibility: visible;
+  }
+
+  /* Position the invoice at the top-left of the printed page */
+  #print-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+  }
+
+  /* Make the card print-friendly */
+  #invoice-card {
+    box-shadow: none !important;              /* remove heavy shadow for print */
+    border: 1px solid #e6e6e6 !important;     /* crisp border */
+    background-color: #ffffff !important;     /* force white background for print */
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    page-break-inside: avoid;
+  }
+
+  /* avoid breaking item rows across pages */
+  .divide-y > div, .grid, .grid > * {
+    page-break-inside: avoid;
+  }
+
+  /* ensure separators are visible in print */
+  .border, .border-border {
+    border-color: #e6e6e6 !important;
+  }
+
+  /* hide elements you explicitly want hidden (header/nav/footer) */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Page size + margins */
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+  }
+
+  /* adjust typographic sizes if needed for print */
+  body {
+    font-size: 12pt; /* optional: make text print-size consistent */
+  }
+}
+
+/* End of print styles */
