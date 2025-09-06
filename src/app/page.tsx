@@ -47,7 +47,7 @@ export default function InvoiceGenerator() {
     phone: "",
   })
 
-  const [items, setItems] = useState<InvoiceItem[]>([{ id: "1", product: "", quantity: 1, price: 0, tax: 18 }])
+  const [items, setItems] = useState<InvoiceItem[]>([{ id: "1", product: "", quantity: 1, price: 0, tax: 0 }])
 
   const [discount, setDiscount] = useState(0)
   const [paymentMode, setPaymentMode] = useState("")
@@ -76,7 +76,7 @@ export default function InvoiceGenerator() {
       product: "",
       quantity: 1,
       price: 0,
-      tax: 18,
+      tax: 0,
     }
     setItems([...items, newItem])
   }
@@ -448,8 +448,8 @@ export default function InvoiceGenerator() {
                         </div>
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        <p>123 Tech Street, Innovation City, IN 560001</p>
-                        <p>Phone: +91 98765 43210 | Email: info@lumiwaves.com</p>
+                        <p>No:64 Murugan Koil Street, North Barathipuram, Shanmugapuram, Pondicherry-09</p>
+                        <p>Phone: +91 93858 20287 | Email: lumiwaves1@gmail.com</p>
                       </div>
                     </div>
 
