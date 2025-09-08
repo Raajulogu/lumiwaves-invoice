@@ -138,7 +138,6 @@ export default function InvoiceGenerator() {
     window.onafterprint = afterPrintHandler;
   };
 
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5">
       {/* Header */}
@@ -275,10 +274,6 @@ export default function InvoiceGenerator() {
                     <Package className="w-5 h-5" />
                     <span>Products & Services</span>
                   </div>
-                  <Button onClick={addItem} size="sm" className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Item
-                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 space-y-4">
@@ -365,15 +360,26 @@ export default function InvoiceGenerator() {
                         className="transition-all duration-200 focus:ring-2 focus:ring-accent/50"
                       />
                     </div>
-                    <div className="space-y-2 flex items-end">
-                      <Button
-                        onClick={() => setShowPreview(!showPreview)}
-                        className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
-                      >
-                        <FileText className="w-4 h-4 mr-2" />
-                        {showPreview ? "Hide Preview" : "Show Preview"}
-                      </Button>
+                    <div>
+                      {/* Add Item */}
+                      <div className="space-y-2 flex items-end">
+                        <Button onClick={addItem} size="sm" className="w-full bg-accent hover:bg-accent/90 text-accent-foreground">
+                          <Plus className="w-4 h-4 mr-1" />
+                          Add Item
+                        </Button>
+                      </div>
+                      {/* Show/Hide Preview */}
+                      <div className="space-y-2 flex items-end">
+                        <Button
+                          onClick={() => setShowPreview(!showPreview)}
+                          className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                        >
+                          <FileText className="w-4 h-4 mr-2" />
+                          {showPreview ? "Hide Preview" : "Show Preview"}
+                        </Button>
+                      </div>
                     </div>
+
                   </div>
                 </div>
               </CardContent>
