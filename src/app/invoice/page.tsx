@@ -140,7 +140,7 @@ export default function InvoiceGenerator() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/20 to-accent/5">
-     <ToolHeader title="Invoice Generator" subtitle="Create billing invoices"/>
+      <ToolHeader title="Invoice Generator" subtitle="Create billing invoices" />
 
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* GST Number */}
@@ -426,11 +426,11 @@ export default function InvoiceGenerator() {
                   <CardContent className="p-8 print:p-6">
                     {/* Invoice Header */}
                     <div className="text-center mb-8 print:mb-6">
-                      <div className="flex items-center justify-center space-x-3 mb-2">
-                        <div className="w-12 h-12 bg-primary rounded-lg flex items-center justify-center">
-                          <Zap className="w-8 h-8 text-primary-foreground" />
+                      <div className="flex items-center justify-center space-x-4 mb-3">
+                        <div className="h-16 flex items-center justify-center">
+                          <img src="/Lumiwaves_logo.png" alt="Lumiwaves Automation Logo" className="h-full max-h-16 w-auto object-contain" />
                         </div>
-                        <div>
+                        <div className="text-left">
                           <h1 className="text-3xl font-bold font-mono text-primary">Lumiwaves Automation</h1>
                           <p className="text-muted-foreground">Smart Living, Simplified</p>
                         </div>

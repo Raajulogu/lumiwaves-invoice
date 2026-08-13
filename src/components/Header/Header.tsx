@@ -7,12 +7,14 @@ import { Button } from "@/components/ui/button"
 interface ToolHeaderProps {
   title: string
   subtitle?: string
+  brandName?: string
   showBackButton?: boolean
 }
 
 export default function ToolHeader({
   title,
   subtitle,
+  brandName = "Lumiwaves Automation",
   showBackButton = true,
 }: ToolHeaderProps) {
   const router = useRouter()
@@ -41,7 +43,7 @@ export default function ToolHeader({
 
             <div>
               <h1 className="text-xl font-bold text-primary">
-                Lumiwaves Automation
+                {brandName}
               </h1>
               <p className="text-sm text-muted-foreground">
                 {title}

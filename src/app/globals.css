@@ -138,8 +138,9 @@
   }
 
   /* avoid breaking item rows across pages */
-  .divide-y > div, .grid, .grid > * {
-    page-break-inside: avoid;
+  .divide-y > div, .grid, .grid > *, .avoid-break, table, tr {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
   }
 
   /* ensure separators are visible in print */

@@ -70,7 +70,7 @@ export default function HomePage() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
 
           <Link href="/invoice">
             <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 bg-white/70 backdrop-blur">
@@ -80,7 +80,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h2 className="font-semibold text-lg">
-                    Invoice Generator
+                    Lumiwaves Billing
                   </h2>
                   <p className="text-sm text-muted-foreground">
                     Create professional billing invoices
@@ -98,10 +98,28 @@ export default function HomePage() {
                 </div>
                 <div>
                   <h2 className="font-semibold text-lg">
-                    Estimation / Quotation
+                    Lumiwaves Estimation
                   </h2>
                   <p className="text-sm text-muted-foreground">
-                    Generate structured project quotations
+                    Generate Lumiwaves project quotations
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/zenith-estimation">
+            <Card className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 bg-white/70 backdrop-blur">
+              <CardContent className="p-8 flex items-center gap-5">
+                <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition">
+                  <FileText className="w-7 h-7 text-primary text-blue-600" />
+                </div>
+                <div>
+                  <h2 className="font-semibold text-lg">
+                    Zenith Estimation
+                  </h2>
+                  <p className="text-sm text-muted-foreground">
+                    Generate Zenith home automation quotations
                   </p>
                 </div>
               </CardContent>
