@@ -12,17 +12,12 @@ import ToolHeader from "@/components/Header/Header";
 interface WorkItem {
     id: string;
     description: string;
-    capacity: string;
-    quantity: number;
-    unitPrice: number;
-}
-
-interface MaterialItem {
-    id: string;
-    description: string;
-    size: string;
-    quantity: string;
-    make: string;
+    hsn: string;
+    rate: number;
+    qty: number;
+    unit: string;
+    cgst: number;
+    sgst: number;
 }
 
 function numberToWords(num: number): string {
@@ -48,7 +43,6 @@ function numberToWords(num: number): string {
     return res;
 }
 
-/** Component for table cell: returns standard Input/Textarea on screen, clean text Div during PDF export */
 function EditableCell({
     value,
     onChange,
@@ -69,11 +63,19 @@ function EditableCell({
     isExportingPDF?: boolean;
 }) {
     const textAlign = align === "center" ? "text-center" : align === "right" ? "text-right" : "text-left";
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    useEffect(() => {
+        if (multiline && textareaRef.current) {
+            textareaRef.current.style.height = "auto";
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + "px";
+        }
+    }, [value, multiline, isExportingPDF]);
 
     if (isExportingPDF) {
         return (
-            <div className={`text-[12px] font-medium text-black leading-snug py-1 w-full ${textAlign} ${className}`}>
-                {value || ""}
+            <div className={`text-[11px] font-medium text-black leading-snug py-0.5 w-full whitespace-pre-wrap ${textAlign} ${className}`}>
+                {value || "\u00A0"}
             </div>
         );
     }
@@ -81,15 +83,12 @@ function EditableCell({
     if (multiline) {
         return (
             <Textarea
+                ref={textareaRef}
                 placeholder={placeholder}
                 value={value}
                 rows={1}
-                onInput={(e) => {
-                    e.currentTarget.style.height = "auto";
-                    e.currentTarget.style.height = e.currentTarget.scrollHeight + "px";
-                }}
                 onChange={(e) => onChange(e.target.value)}
-                className={`border-none p-1 h-auto min-h-[30px] w-full focus-visible:ring-0 shadow-none resize-none overflow-hidden text-[12px] leading-snug bg-transparent text-black font-medium ${textAlign} ${className}`}
+                className={`border-none p-1 h-auto min-h-[24px] w-full focus-visible:ring-0 shadow-none resize-none overflow-hidden text-[11px] leading-snug bg-transparent text-black font-medium ${textAlign} ${className}`}
             />
         );
     }
@@ -100,7 +99,7 @@ function EditableCell({
             placeholder={placeholder}
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            className={`border-none p-1 h-7 w-full focus-visible:ring-0 rounded-none shadow-none text-[12px] leading-snug bg-transparent text-black font-medium ${textAlign} ${className}`}
+            className={`border-none p-1 h-6 w-full focus-visible:ring-0 rounded-none shadow-none text-[11px] leading-snug bg-transparent text-black font-medium ${textAlign} ${className}`}
         />
     );
 }
@@ -110,50 +109,94 @@ const EstimationPage = () => {
 
     const [quotationNumber, setQuotationNumber] = useState("");
     const [quotationDate, setQuotationDate] = useState("");
-    const [customerDetails, setCustomerDetails] = useState("");
-    const [systemCapacity, setSystemCapacity] = useState("3.24 KW");
-    const [subsidyAmount, setSubsidyAmount] = useState<number>(0);
+    const [customerDetails, setCustomerDetails] = useState("GUNA\nLUMIWAVES\nPh: 9385820287");
+    const [placeOfSupply, setPlaceOfSupply] = useState("33-TAMIL NADU");
+    const [validity, setValidity] = useState("");
+    const [dispatchFrom, setDispatchFrom] = useState("No:64 Murugan Koil Street, North Bharathipuram,\nShanmugapuram, Pondicherry - 605009");
+    const [reference, setReference] = useState("");
+    
+    const [bankName, setBankName] = useState("Indian Bank");
+    const [accountNo, setAccountNo] = useState("1234567890");
+    const [ifsc, setIfsc] = useState("IDIB000S123");
+    const [branch, setBranch] = useState("PONDICHERRY");
+
     const [isExportingPDF, setIsExportingPDF] = useState(false);
 
     const [workItems, setWorkItems] = useState<WorkItem[]>([
-        { id: "1", description: "Residential Rooftop Grid Connected Solar System", capacity: "3.24 KW", quantity: 1, unitPrice: 150000 },
-        { id: "2", description: "Mounting structure (Hot dip galvanized)", capacity: "-", quantity: 1, unitPrice: 10000 },
-        { id: "3", description: "Discom Net Metering Connectivity Charges", capacity: "-", quantity: 1, unitPrice: 5000 },
+        { id: "1", description: "3.2 KW ON GRID SOLAR SYSTEM INSTALLATION WORK", hsn: "998731", rate: 58000, qty: 3.2, unit: "UNT", cgst: 9, sgst: 9 },
     ]);
 
-    const [materialItems, setMaterialItems] = useState<MaterialItem[]>([
-        { id: "1", description: "Mono Bifacial Solar Module", size: "540Wp", quantity: "6", make: "WAAREE" },
-        { id: "2", description: "Grid Tie Inverter", size: "3.4 KW", quantity: "1", make: "SOLARYAAN" },
-        { id: "3", description: "G.I. Pipe Fabricated Structure", size: "Rafter: 60x40x2mm", quantity: "As per Req.", make: "HINDUSTAN" },
-        { id: "4", description: "DC Cable", size: "1C x 2.5 SQMM", quantity: "As per Req.", make: "POLYCAB" },
-        { id: "5", description: "AC Cable", size: "1C x 2.5 SQMM", quantity: "As per Req.", make: "POLYCAB" },
-    ]);
+    const [notes, setNotes] = useState([
+        "1. WAAREE 550W TOPCON BIFACIAL DCR PANELS (30 Y WARRANTY).",
+        "2. GROWATT INVERTER 3.3 KW SINGLE PHASE (10Y WARRANTY).",
+        "3. GI HOT DIP STRUCTURE 72X60X40X2MM THICKNESS( 5 Y WARRANTY).",
+        "4. POLYCAB 6SQ MM CABLES (EARTH, LA, DC, AC).",
+        "5. LA 1 METER 1NOS.",
+        "6. EARTH ROD 1 METER 3NOS.",
+        "7. HPL SINGLE PHASE ENERGY METER.",
+        "8. 1\" PVC PIPE 2MM, SS CLAMP, SS SCREW.",
+        "9. ACDB,DCDB (L&T,SCHNEIDER,ABB,LEGRAND,HAVELLS).",
+        "10. NET METERING WORK ALSO.",
+        "11. 3 FREE MAINTANCE."
+    ].join("\n"));
+
+    const [terms, setTerms] = useState([
+        "1. All quotations are valid for 30 days from the date of issue unless otherwise specified.",
+        "2. Prices are exclusive of taxes and additional charges unless stated.",
+        "3. Payment terms will be as specified in the final invoice.",
+        "4. Delivery timelines provided are estimates and subject to change.",
+        "5. Quotations do not constitute a binding contract until accepted and confirmed in writing.",
+        "6. Any changes to the scope of work may result in revised pricing.",
+        "7. Confidentiality of the quotation content must be maintained by the recipient."
+    ].join("\n"));
 
     useEffect(() => {
-        setQuotationNumber(`S${Math.floor(Math.random() * 100000).toString().padStart(5, '0')}`);
+        setQuotationNumber(`EST-${Math.floor(Math.random() * 1000).toString()}`);
         const d = new Date();
-        setQuotationDate(`${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth() + 1).padStart(2, '0')}-${d.getFullYear()}`);
+        const dateStr = `${String(d.getDate()).padStart(2, '0')} ${d.toLocaleString('default', { month: 'short' })} ${d.getFullYear()}`;
+        setQuotationDate(dateStr);
+        setValidity(dateStr);
     }, []);
 
-    const addWorkItem = () => setWorkItems([...workItems, { id: Date.now().toString(), description: "", capacity: "", quantity: 1, unitPrice: 0 }]);
-    const removeWorkItem = (id: string) => { if (workItems.length > 1) setWorkItems(workItems.filter(i => i.id !== id)); };
+    const addWorkItem = () => setWorkItems([...workItems, { id: Date.now().toString(), description: "", hsn: "", rate: 0, qty: 1, unit: "UNT", cgst: 9, sgst: 9 }]);
+    const removeWorkItem = (id: string) => { setWorkItems(workItems.filter(i => i.id !== id)); };
     const updateWorkItem = (id: string, field: keyof WorkItem, value: string | number) =>
         setWorkItems(workItems.map(i => i.id === id ? { ...i, [field]: value } : i));
 
-    const addMaterialItem = () => setMaterialItems([...materialItems, { id: Date.now().toString(), description: "", size: "", quantity: "1", make: "" }]);
-    const removeMaterialItem = (id: string) => { if (materialItems.length > 1) setMaterialItems(materialItems.filter(i => i.id !== id)); };
-    const updateMaterialItem = (id: string, field: keyof MaterialItem, value: string) =>
-        setMaterialItems(materialItems.map(i => i.id === id ? { ...i, [field]: value } : i));
+    let totalTaxable = 0;
+    let totalCgst = 0;
+    let totalSgst = 0;
+    let totalQty = 0;
 
-    const grandTotal = workItems.reduce((s, i) => s + i.quantity * i.unitPrice, 0);
-    const finalCosting = Math.max(0, grandTotal - (subsidyAmount || 0));
+    const hsnTotals = workItems.reduce((acc, item) => {
+        const taxable = item.rate * item.qty;
+        const cgstAmt = taxable * item.cgst / 100;
+        const sgstAmt = taxable * item.sgst / 100;
+        
+        totalTaxable += taxable;
+        totalCgst += cgstAmt;
+        totalSgst += sgstAmt;
+        totalQty += item.qty;
+
+        if (!item.hsn) return acc;
+        
+        if (!acc[item.hsn]) {
+            acc[item.hsn] = { taxable: 0, cgstAmount: 0, sgstAmount: 0, cgstRate: item.cgst, sgstRate: item.sgst };
+        }
+        acc[item.hsn].taxable += taxable;
+        acc[item.hsn].cgstAmount += cgstAmt;
+        acc[item.hsn].sgstAmount += sgstAmt;
+        
+        return acc;
+    }, {} as Record<string, { taxable: number, cgstAmount: number, sgstAmount: number, cgstRate: number, sgstRate: number }>);
+
+    const grandTotal = totalTaxable + totalCgst + totalSgst;
 
     const handleDownloadPDF = async () => {
         const element = printRef.current;
         if (!element) return;
 
         setIsExportingPDF(true);
-        // Wait 50ms for React to swap components to static text divs
         await new Promise((resolve) => setTimeout(resolve, 50));
 
         try {
@@ -169,14 +212,11 @@ const EstimationPage = () => {
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
 
-            const margin = 10; // mm on all four sides
+            const margin = 10;
             const contentW = pdfWidth - 2 * margin;
             const contentH = pdfHeight - 2 * margin;
 
-            // How many canvas pixels fit in one A4 content area height
             const canvasPageHeight = Math.floor((canvas.width / contentW) * contentH);
-
-            // Measure DOM elements with .avoid-break to prevent cutting them in half
             const containerRect = element.getBoundingClientRect();
             const scaleRatio = canvas.height / element.offsetHeight;
 
@@ -188,19 +228,20 @@ const EstimationPage = () => {
                 return { top, bottom, height: bottom - top };
             });
 
-            // Calculate smart slice heights
             const slices: { srcY: number; srcH: number }[] = [];
             let currentY = 0;
 
-            while (currentY < canvas.height - 5) {
+            while (currentY < canvas.height - 15) {
                 let targetY = currentY + canvasPageHeight;
 
                 if (targetY >= canvas.height) {
-                    slices.push({ srcY: currentY, srcH: canvas.height - currentY });
+                    const remainingHeight = canvas.height - currentY;
+                    if (remainingHeight > 15) {
+                        slices.push({ srcY: currentY, srcH: remainingHeight });
+                    }
                     break;
                 }
 
-                // Check if targetY cuts through any .avoid-break element
                 let adjustedY = targetY;
                 for (const block of blockBounds) {
                     if (block.top < targetY && block.bottom > targetY) {
@@ -211,11 +252,12 @@ const EstimationPage = () => {
                 }
 
                 const srcH = adjustedY - currentY;
+                if (srcH <= 0) break;
+                
                 slices.push({ srcY: currentY, srcH });
                 currentY = adjustedY;
             }
 
-            // Render slices to PDF pages
             for (let pageIndex = 0; pageIndex < slices.length; pageIndex++) {
                 if (pageIndex > 0) pdf.addPage();
 
@@ -251,253 +293,275 @@ const EstimationPage = () => {
                 <Button onClick={handleDownloadPDF}><Download className="w-4 h-4 mr-2" /> Download PDF</Button>
             </div>
 
-            <div ref={printRef} className="max-w-4xl mx-auto bg-white p-8 text-sm text-black shadow-lg" style={{ minHeight: '297mm' }}>
+            <div ref={printRef} className="max-w-4xl mx-auto bg-white p-6 text-sm text-black shadow-lg flex flex-col" style={{ minHeight: '297mm' }}>
 
-                {/* HEADER TABLE */}
-                <table className="avoid-break w-full border border-black text-sm border-collapse">
-                    <tbody>
-                        <tr>
-                            <td className="border-r border-black p-4 w-[60%] align-top">
-                                <div className="flex gap-4 items-center">
-                                    <div className="w-20 h-16 flex-shrink-0 flex items-center justify-center">
-                                        <img src="/Lumiwaves_logo.png" alt="Lumiwaves Automation Logo" className="max-w-full max-h-full object-contain" />
-                                    </div>
-                                    <div className="text-[12px] leading-snug flex flex-col gap-0.5">
-                                        <h2 className="text-sm font-bold uppercase text-black">LUMI WAVES AUTOMATION</h2>
-                                        <p className="text-[11px] text-gray-600">Solar &amp; Smart Energy Solutions</p>
-                                        <p className="mt-1">No:64 Murugan Koil Street, North Bharathipuram</p>
-                                        <p>Shanmugapuram, Pondicherry - 605009</p>
-                                        <p>Phone: +91 93858 20287 | Email: lumiwaves1@gmail.com</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td className="w-[40%] p-0 align-top">
-                                <table className="w-full h-full border-collapse">
-                                    <tbody>
-                                        <tr>
-                                            <td className="border-b border-black p-2.5 w-1/2 align-top">
-                                                <p className="text-gray-600 text-[10px] font-medium mb-1 uppercase tracking-wide">Quotation No</p>
-                                                {isExportingPDF ? (
-                                                    <p className="font-semibold text-[12px] text-black">{quotationNumber}</p>
-                                                ) : (
-                                                    <Input value={quotationNumber} onChange={e => setQuotationNumber(e.target.value)} className="border border-gray-300 rounded px-1.5 h-7 text-[12px] font-semibold w-full focus-visible:ring-1" />
-                                                )}
-                                            </td>
-                                            <td className="border-b border-l border-black p-2.5 w-1/2 align-top">
-                                                <p className="text-gray-600 text-[10px] font-medium mb-1 uppercase tracking-wide">Quotation Date</p>
-                                                {isExportingPDF ? (
-                                                    <p className="font-semibold text-[12px] text-black">{quotationDate}</p>
-                                                ) : (
-                                                    <Input value={quotationDate} onChange={e => setQuotationDate(e.target.value)} className="border border-gray-300 rounded px-1.5 h-7 text-[12px] font-semibold w-full focus-visible:ring-1" />
-                                                )}
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colSpan={2} className="p-2.5 align-top">
-                                                <p className="text-gray-600 text-[10px] font-medium mb-1 uppercase tracking-wide">System Capacity</p>
-                                                {isExportingPDF ? (
-                                                    <p className="font-semibold text-[12px] text-black">{systemCapacity}</p>
-                                                ) : (
-                                                    <Input value={systemCapacity} onChange={e => setSystemCapacity(e.target.value)} className="border border-gray-300 rounded px-1.5 h-7 text-[12px] font-semibold w-full focus-visible:ring-1" />
-                                                )}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                {/* CUSTOMER DETAILS */}
-                <table className="avoid-break w-full border-x border-b border-black text-sm mb-4 border-collapse">
-                    <tbody>
-                        <tr>
-                            <td className="p-3 align-top">
-                                <p className="text-gray-700 text-[11px] font-medium mb-1">Estimate For / Customer Details</p>
-                                {isExportingPDF ? (
-                                    <div className="text-[12px] font-medium text-black leading-snug whitespace-pre-wrap">{customerDetails || " "}</div>
-                                ) : (
-                                    <Textarea
-                                        placeholder="Enter Customer Name, Address, Contact details..."
-                                        value={customerDetails}
-                                        onChange={e => setCustomerDetails(e.target.value)}
-                                        onInput={e => { e.currentTarget.style.height = "auto"; e.currentTarget.style.height = e.currentTarget.scrollHeight + "px"; }}
-                                        className="border border-gray-300 rounded p-1.5 min-h-[45px] font-medium focus-visible:ring-1 resize-none text-[12px] w-full bg-white text-black"
-                                    />
-                                )}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                {/* SECTION 1 HEADER */}
-                <div className="avoid-break bg-[#4682B4] text-white font-bold text-center py-2 border border-black uppercase text-xs tracking-wider mb-[-1px]">
-                    SECTION 1: WORK &amp; SOLAR SYSTEM COSTING
-                </div>
-
-                {/* SECTION 1 TABLE */}
-                <table className="avoid-break w-full border border-black text-sm border-collapse">
-                    <thead className="bg-[#f0f4f8]">
-                        <tr>
-                            <th className="border-b border-r border-black p-2 text-center w-[6%] text-[12px] font-semibold">Sr. No</th>
-                            <th className="border-b border-r border-black p-2 text-left w-[40%] text-[12px] font-semibold">Description</th>
-                            <th className="border-b border-r border-black p-2 text-center w-[16%] text-[12px] font-semibold">Capacity / Unit</th>
-                            <th className="border-b border-r border-black p-2 text-center w-[8%] text-[12px] font-semibold">Qty</th>
-                            <th className="border-b border-r border-black p-2 text-right w-[12%] text-[12px] font-semibold">Rate (₹)</th>
-                            <th className="border-b border-r border-black p-2 text-right w-[14%] text-[12px] font-semibold">Amount (₹)</th>
-                            <th className="border-b border-black p-2 w-[4%] print:hidden" data-html2canvas-ignore="true"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {workItems.map((item, index) => (
-                            <tr key={item.id} className="avoid-break align-top">
-                                <td className="border-b border-r border-black p-2 text-center text-[12px] font-medium">{index + 1}</td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={item.description} onChange={v => updateWorkItem(item.id, "description", v)} multiline placeholder="Work / Scope description" />
-                                </td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={item.capacity} onChange={v => updateWorkItem(item.id, "capacity", v)} placeholder="e.g. 3.24 KW" align="center" />
-                                </td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={String(item.quantity || "")} onChange={v => updateWorkItem(item.id, "quantity", Number(v))} type="number" align="center" />
-                                </td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={String(item.unitPrice || "")} onChange={v => updateWorkItem(item.id, "unitPrice", Number(v))} type="number" align="right" />
-                                </td>
-                                <td className="border-b border-r border-black p-2 text-right text-[12px] font-semibold align-top">
-                                    ₹{(item.quantity * item.unitPrice).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                                </td>
-                                <td className="border-b border-black p-1 text-center print:hidden" data-html2canvas-ignore="true">
-                                    <button onClick={() => removeWorkItem(item.id)}><Trash2 className="w-3.5 h-3.5 text-red-500 hover:text-red-700" /></button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                <div className="mb-2 mt-1 print:hidden" data-html2canvas-ignore="true">
-                    <Button onClick={addWorkItem} variant="outline" size="sm" className="w-full border-dashed bg-white text-xs">
-                        <Plus className="w-3.5 h-3.5 mr-1" /> Add Work / Project Item
-                    </Button>
-                </div>
-
-                {/* TOTALS */}
-                <table className="avoid-break w-full border border-black text-sm border-collapse mb-6">
-                    <tbody>
-                        <tr className="bg-[#fcfcfc]">
-                            <td colSpan={2} className="border-r border-b border-black p-2 font-bold text-right text-[12px]">Grand Total (System Installation Cost)</td>
-                            <td className="border-b border-black p-2 text-right font-bold text-xs w-[25%]">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td colSpan={2} className="border-r border-b border-black p-2 text-right text-[12px] font-medium text-gray-700">Less: Subsidy / Govt Discount (Optional)</td>
-                            <td className="border-b border-black p-2 text-right text-xs">
-                                {isExportingPDF ? (
-                                    <div className="text-[12px] font-medium text-right text-black">{subsidyAmount > 0 ? `₹${subsidyAmount.toLocaleString('en-IN')}` : "-"}</div>
-                                ) : (
-                                    <Input type="number" placeholder="0" value={subsidyAmount || ""} onChange={e => setSubsidyAmount(Number(e.target.value))} className="border border-gray-300 rounded text-right px-1.5 h-6 text-xs w-full bg-white" />
-                                )}
-                            </td>
-                        </tr>
-                        <tr className="bg-gray-100">
-                            <td colSpan={2} className="border-r border-b border-black p-2 font-bold text-right text-[12px]">Customer Costing After Subsidy / Net Payable</td>
-                            <td className="border-b border-black p-2 text-right font-bold text-xs">₹{finalCosting.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</td>
-                        </tr>
-                        <tr>
-                            <td colSpan={3} className="p-3 bg-[#f9fafb]">
-                                <span className="text-[11px] text-gray-700 font-medium">Total Amount in Words: </span>
-                                <span className="font-bold text-xs text-black">{numberToWords(finalCosting)}</span>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                <div className="my-4 border-t-2 border-black"></div>
-
-                {/* SECTION 2 HEADER */}
-                <div className="avoid-break bg-[#4682B4] text-white font-bold text-center py-2 border border-black uppercase text-xs tracking-wider mb-[-1px]">
-                    ITEM DESCRIPTION &amp; MATERIAL SPECIFICATIONS FOR ROOFTOP SOLAR POWER PLANT
-                </div>
-
-                {/* SECTION 2 TABLE */}
-                <table className="avoid-break w-full border border-black text-sm border-collapse mb-2">
-                    <thead className="bg-[#f0f4f8]">
-                        <tr>
-                            <th className="border-b border-r border-black p-2 text-center w-[6%] text-[12px] font-semibold">Sr. No</th>
-                            <th className="border-b border-r border-black p-2 text-left w-[40%] text-[12px] font-semibold">Description</th>
-                            <th className="border-b border-r border-black p-2 text-left w-[26%] text-[12px] font-semibold">Size / Specification</th>
-                            <th className="border-b border-r border-black p-2 text-center w-[12%] text-[12px] font-semibold">Qty</th>
-                            <th className="border-b border-r border-black p-2 text-left w-[12%] text-[12px] font-semibold">Make / Brand</th>
-                            <th className="border-b border-black p-2 w-[4%] print:hidden" data-html2canvas-ignore="true"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {materialItems.map((item, index) => (
-                            <tr key={item.id} className="avoid-break align-top">
-                                <td className="border-b border-r border-black p-2 text-center text-[12px] font-medium">{index + 1}</td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={item.description} onChange={v => updateMaterialItem(item.id, "description", v)} multiline placeholder="Product / Item description" />
-                                </td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={item.size} onChange={v => updateMaterialItem(item.id, "size", v)} placeholder="Size / Specs" />
-                                </td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={item.quantity} onChange={v => updateMaterialItem(item.id, "quantity", v)} placeholder="Qty" align="center" />
-                                </td>
-                                <td className="border-b border-r border-black p-2">
-                                    <EditableCell isExportingPDF={isExportingPDF} value={item.make} onChange={v => updateMaterialItem(item.id, "make", v)} placeholder="Make / Brand" />
-                                </td>
-                                <td className="border-b border-black p-1 text-center print:hidden" data-html2canvas-ignore="true">
-                                    <button onClick={() => removeMaterialItem(item.id)}><Trash2 className="w-3.5 h-3.5 text-red-500 hover:text-red-700" /></button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-
-                <div className="mb-6 print:hidden" data-html2canvas-ignore="true">
-                    <Button onClick={addMaterialItem} variant="outline" size="sm" className="w-full border-dashed bg-white text-xs">
-                        <Plus className="w-3.5 h-3.5 mr-1" /> Add Material / Product Specification
-                    </Button>
-                </div>
-
-                {/* SIGNATURE */}
-                <table className="avoid-break w-full border border-black text-sm border-collapse mb-4 mt-4">
-                    <tbody>
-                        <tr>
-                            <td className="border-r border-black p-3 align-top w-[60%] h-24">
-                                <p className="text-gray-800 text-[11px] mb-1 font-medium">Payment Contact &amp; Enquiries:</p>
-                                <span className="text-black font-semibold text-[12px]">+91 93858 20287 | lumiwaves1@gmail.com</span>
-                            </td>
-                            <td className="p-3 align-top text-center w-[40%] h-24 relative">
-                                <p className="text-black text-[11px] font-bold mt-1">For: LUMI WAVES AUTOMATION</p>
-                                <p className="text-[10px] text-gray-800 absolute bottom-3 left-0 right-0">Authorized Signatory</p>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-
-                {/* TERMS */}
-                <div className="avoid-break border border-black p-3 text-[11px]">
-                    <p className="font-bold mb-1.5 uppercase text-black">Terms &amp; Conditions</p>
-                    <div className="flex flex-col gap-1 text-black">
-                        {[
-                            "This estimation is valid for 15 days from the date issued.",
-                            "50% advance payment is required to confirm the order.",
-                            "Balance payment must be made upon completion of installation.",
-                            "Net metering and discom permissions are subject to electricity board norms.",
-                            "Warranty will be provided as per standard manufacturer policies.",
-                        ].map((line, i) => (
-                            <div key={i} className="flex gap-2 leading-snug">
-                                <span className="flex-shrink-0 font-medium">{i + 1}.</span>
-                                <span>{line}</span>
-                            </div>
-                        ))}
+                {/* HEADER */}
+                <div className="flex justify-between items-start mb-6 avoid-break">
+                    <div className="flex gap-4 items-center">
+                        <div className="w-20 h-20 flex-shrink-0 flex items-center justify-center">
+                            <img src="/Lumiwaves_logo.png" alt="Lumiwaves Logo" className="max-w-full max-h-full object-contain" />
+                        </div>
+                        <div className="text-[11px] leading-snug flex flex-col">
+                            <h2 className="text-[16px] font-bold uppercase text-black mb-1">LUMI WAVES AUTOMATION</h2>
+                            <p className="font-semibold text-gray-700">Solar &amp; Smart Energy Solutions</p>
+                            <p>No:64 Murugan Koil Street, North Bharathipuram,</p>
+                            <p>Shanmugapuram, Pondicherry - 605009</p>
+                            <p>Mobile: +91 93858 20287 | Email: lumiwaves1@gmail.com</p>
+                            <p>Website: WWW.LUMIWAVES.COM</p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <h1 className="text-xl font-bold text-blue-600 uppercase tracking-widest mb-1">QUOTATION</h1>
+                        <p className="text-[10px] text-gray-800 font-bold uppercase">ORIGINAL FOR RECIPIENT</p>
                     </div>
                 </div>
+
+                {/* INFO DETAILS BOX */}
+                <div className="border border-black flex w-full text-[11px] leading-tight avoid-break">
+                    {/* Customer Details Box */}
+                    <div className="w-1/2 border-r border-black p-2 flex flex-col">
+                        <span className="font-semibold mb-1">Customer Details:</span>
+                        <EditableCell isExportingPDF={isExportingPDF} value={customerDetails} onChange={setCustomerDetails} multiline placeholder="Enter Customer Details..." />
+                    </div>
+                    {/* Quotation Details */}
+                    <div className="w-1/2 flex flex-col">
+                        <div className="flex border-b border-black">
+                            <div className="w-1/2 border-r border-black p-2">
+                                <span className="font-semibold">Quotation #:</span>
+                                <EditableCell isExportingPDF={isExportingPDF} value={quotationNumber} onChange={setQuotationNumber} className="mt-1 font-medium" />
+                            </div>
+                            <div className="w-1/2 p-2">
+                                <span className="font-semibold">Date:</span>
+                                <EditableCell isExportingPDF={isExportingPDF} value={quotationDate} onChange={setQuotationDate} className="mt-1 font-medium" />
+                            </div>
+                        </div>
+                        <div className="flex border-b border-black">
+                            <div className="w-1/2 border-r border-black p-2">
+                                <span className="font-semibold">Place of Supply:</span>
+                                <EditableCell isExportingPDF={isExportingPDF} value={placeOfSupply} onChange={setPlaceOfSupply} className="mt-1 font-medium" />
+                            </div>
+                            <div className="w-1/2 p-2">
+                                <span className="font-semibold">Validity:</span>
+                                <EditableCell isExportingPDF={isExportingPDF} value={validity} onChange={setValidity} className="mt-1 font-medium" />
+                            </div>
+                        </div>
+                        <div className="p-2 border-b border-black flex flex-col">
+                            <span className="font-semibold mb-1">Dispatch From:</span>
+                            <EditableCell isExportingPDF={isExportingPDF} value={dispatchFrom} onChange={setDispatchFrom} multiline className="font-medium" />
+                        </div>
+                        <div className="p-2 flex flex-col">
+                            <span className="font-semibold mb-1">Reference:</span>
+                            <EditableCell isExportingPDF={isExportingPDF} value={reference} onChange={setReference} className="font-medium" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* MAIN ITEMS TABLE */}
+                <table className="w-full border-x border-black text-[10px] border-collapse avoid-break" style={{borderBottom: workItems.length === 0 ? "1px solid black" : "none"}}>
+                    <thead>
+                        <tr className="border-b border-black">
+                            <th className="border-r border-black p-1.5 text-center font-bold w-[4%]">#</th>
+                            <th className="border-r border-black p-1.5 text-left font-bold w-[26%]">Item</th>
+                            <th className="border-r border-black p-1.5 text-center font-bold w-[9%]">HSN/SAC</th>
+                            <th className="border-r border-black p-1.5 text-right font-bold w-[10%]">Rate / Item</th>
+                            <th className="border-r border-black p-1.5 text-center font-bold w-[9%]">Qty</th>
+                            <th className="border-r border-black p-1.5 text-right font-bold w-[11%]">Taxable Value</th>
+                            <th className="border-r border-black p-1.5 text-right font-bold w-[10%]">CGST</th>
+                            <th className="border-r border-black p-1.5 text-right font-bold w-[10%]">SGST</th>
+                            <th className="p-1.5 text-right font-bold w-[11%]">Amount</th>
+                            <th className="p-1.5 w-[3%] border-l border-black print:hidden" data-html2canvas-ignore="true"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {workItems.map((item, index) => {
+                            const taxableValue = item.rate * item.qty;
+                            const cgstAmount = taxableValue * item.cgst / 100;
+                            const sgstAmount = taxableValue * item.sgst / 100;
+                            const amount = taxableValue + cgstAmount + sgstAmount;
+                            return (
+                                <tr key={item.id} className="align-top border-b border-gray-200">
+                                    <td className="border-r border-black p-1.5 text-center">{index + 1}</td>
+                                    <td className="border-r border-black p-1.5">
+                                        <EditableCell isExportingPDF={isExportingPDF} value={item.description} onChange={v => updateWorkItem(item.id, "description", v)} multiline />
+                                    </td>
+                                    <td className="border-r border-black p-1.5 text-center">
+                                        <EditableCell isExportingPDF={isExportingPDF} value={item.hsn} onChange={v => updateWorkItem(item.id, "hsn", v)} align="center" />
+                                    </td>
+                                    <td className="border-r border-black p-1.5 text-right">
+                                        <EditableCell isExportingPDF={isExportingPDF} value={String(item.rate)} onChange={v => updateWorkItem(item.id, "rate", Number(v))} type="number" align="right" />
+                                    </td>
+                                    <td className="border-r border-black p-1.5 text-center flex flex-col items-center justify-center gap-0.5">
+                                        <div className="flex w-full items-center justify-center">
+                                            <EditableCell isExportingPDF={isExportingPDF} value={String(item.qty)} onChange={v => updateWorkItem(item.id, "qty", Number(v))} type="text" align="center" className="w-10" />
+                                            <EditableCell isExportingPDF={isExportingPDF} value={item.unit} onChange={v => updateWorkItem(item.id, "unit", v)} align="center" className="w-10" />
+                                        </div>
+                                    </td>
+                                    <td className="border-r border-black p-1.5 text-right font-medium">{taxableValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                    <td className="border-r border-black p-1.5 text-right font-medium">
+                                        {cgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                        <div className="text-[9px] text-gray-500 font-normal mt-0.5">
+                                            (<EditableCell isExportingPDF={isExportingPDF} value={String(item.cgst)} onChange={v => updateWorkItem(item.id, "cgst", Number(v))} type="text" align="center" className="inline w-6 p-0 h-4"/>%)
+                                        </div>
+                                    </td>
+                                    <td className="border-r border-black p-1.5 text-right font-medium">
+                                        {sgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                        <div className="text-[9px] text-gray-500 font-normal mt-0.5">
+                                            (<EditableCell isExportingPDF={isExportingPDF} value={String(item.sgst)} onChange={v => updateWorkItem(item.id, "sgst", Number(v))} type="text" align="center" className="inline w-6 p-0 h-4"/>%)
+                                        </div>
+                                    </td>
+                                    <td className="p-1.5 text-right font-semibold">{amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                    <td className="p-1.5 text-center border-l border-black print:hidden" data-html2canvas-ignore="true">
+                                        <button onClick={() => removeWorkItem(item.id)}><Trash2 className="w-3.5 h-3.5 text-red-500 hover:text-red-700" /></button>
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                        {/* Empty filler space */}
+                        <tr>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="border-r border-black p-1 h-24"></td>
+                            <td className="p-1 h-24"></td>
+                            <td className="border-l border-black print:hidden" data-html2canvas-ignore="true"></td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div className="print:hidden border-x border-black bg-gray-50 py-1 px-2" data-html2canvas-ignore="true">
+                    <Button onClick={addWorkItem} variant="outline" size="sm" className="w-full border-dashed bg-white text-xs h-7">
+                        <Plus className="w-3.5 h-3.5 mr-1" /> Add Item
+                    </Button>
+                </div>
+
+                {/* TOTALS AREA */}
+                <div className="flex border border-black text-[11px] avoid-break">
+                    <div className="w-[65%] border-r border-black p-2 flex flex-col justify-between">
+                        <div>
+                            <div className="mb-1">
+                                Total Items / Qty : {workItems.length} / {totalQty}
+                            </div>
+                            <div className="mb-2">
+                                Total amount (in words): <span className="font-semibold text-black">INR {numberToWords(grandTotal)} Only.</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div className="font-bold mb-1 underline">Bank Details:</div>
+                            <table className="w-full text-[10px] max-w-sm">
+                                <tbody>
+                                    <tr><td className="w-20 font-medium pb-1">Bank:</td><td className="font-semibold"><EditableCell isExportingPDF={isExportingPDF} value={bankName} onChange={setBankName} /></td></tr>
+                                    <tr><td className="font-medium pb-1">Account #:</td><td className="font-semibold"><EditableCell isExportingPDF={isExportingPDF} value={accountNo} onChange={setAccountNo} /></td></tr>
+                                    <tr><td className="font-medium pb-1">IFSC Code:</td><td className="font-semibold"><EditableCell isExportingPDF={isExportingPDF} value={ifsc} onChange={setIfsc} /></td></tr>
+                                    <tr><td className="font-medium pb-1">Branch:</td><td className="font-semibold"><EditableCell isExportingPDF={isExportingPDF} value={branch} onChange={setBranch} /></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div className="w-[35%] flex flex-col font-medium">
+                        <div className="flex justify-between p-2 border-b border-black">
+                            <span>Taxable Amount</span>
+                            <span className="font-bold text-[12px]">₹{totalTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <div className="flex justify-between p-2 border-b border-black">
+                            <span>CGST Amount</span>
+                            <span className="font-bold text-[12px]">₹{totalCgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <div className="flex justify-between p-2 border-b border-black">
+                            <span>SGST Amount</span>
+                            <span className="font-bold text-[12px]">₹{totalSgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                        </div>
+                        <div className="flex justify-between p-2 font-bold text-[14px] items-center h-full">
+                            <span>Total</span>
+                            <span>₹{grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* TAX TABLE AREA */}
+                <table className="w-full border-x border-b border-black text-[10px] border-collapse text-center avoid-break">
+                    <thead className="bg-gray-50">
+                        <tr className="border-b border-black">
+                            <th className="border-r border-black p-1 font-semibold w-[15%]" rowSpan={2}>HSN/SAC</th>
+                            <th className="border-r border-black p-1 font-semibold w-[17%]" rowSpan={2}>Taxable Value</th>
+                            <th className="border-r border-black p-1 font-semibold border-b w-[24%]" colSpan={2}>Central Tax</th>
+                            <th className="border-r border-black p-1 font-semibold border-b w-[24%]" colSpan={2}>State/UT Tax</th>
+                            <th className="p-1 font-semibold w-[20%]" rowSpan={2}>Total Tax</th>
+                        </tr>
+                        <tr className="border-b border-black">
+                            <th className="border-r border-black p-1 font-semibold w-[10%]">Rate</th>
+                            <th className="border-r border-black p-1 font-semibold w-[14%]">Amount</th>
+                            <th className="border-r border-black p-1 font-semibold w-[10%]">Rate</th>
+                            <th className="border-r border-black p-1 font-semibold w-[14%]">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Object.entries(hsnTotals).map(([hsn, data]) => (
+                            <tr key={hsn} className="border-b border-gray-300">
+                                <td className="border-r border-black p-1.5 text-left">{hsn}</td>
+                                <td className="border-r border-black p-1.5 text-right">{data.taxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                <td className="border-r border-black p-1.5">{data.cgstRate}%</td>
+                                <td className="border-r border-black p-1.5 text-right">{data.cgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                <td className="border-r border-black p-1.5">{data.sgstRate}%</td>
+                                <td className="border-r border-black p-1.5 text-right">{data.sgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                <td className="p-1.5 text-right">{(data.cgstAmount + data.sgstAmount).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                            </tr>
+                        ))}
+                        {Object.keys(hsnTotals).length === 0 && (
+                             <tr className="border-b border-gray-300">
+                                <td className="border-r border-black p-1.5 text-left">-</td>
+                                <td className="border-r border-black p-1.5 text-right">0.00</td>
+                                <td className="border-r border-black p-1.5">0%</td>
+                                <td className="border-r border-black p-1.5 text-right">0.00</td>
+                                <td className="border-r border-black p-1.5">0%</td>
+                                <td className="border-r border-black p-1.5 text-right">0.00</td>
+                                <td className="p-1.5 text-right">0.00</td>
+                            </tr>
+                        )}
+                        <tr className="border-t border-black font-bold bg-gray-50">
+                            <td className="border-r border-black p-1.5 text-right">TOTAL</td>
+                            <td className="border-r border-black p-1.5 text-right">{totalTaxable.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                            <td className="border-r border-black p-1.5"></td>
+                            <td className="border-r border-black p-1.5 text-right">{totalCgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                            <td className="border-r border-black p-1.5"></td>
+                            <td className="border-r border-black p-1.5 text-right">{totalSgst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                            <td className="p-1.5 text-right">{(totalCgst + totalSgst).toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {/* BOTTOM AREA */}
+                <div className="flex border-x border-b border-black text-[10px] avoid-break flex-1">
+                    <div className="w-[70%] border-r border-black p-3 flex flex-col gap-4">
+                        <div>
+                            <div className="font-bold underline mb-1.5 text-black">Notes:</div>
+                            <EditableCell isExportingPDF={isExportingPDF} value={notes} onChange={setNotes} multiline />
+                        </div>
+                        <div>
+                            <div className="font-bold mb-1.5 text-black">Terms and Conditions:</div>
+                            <EditableCell isExportingPDF={isExportingPDF} value={terms} onChange={setTerms} multiline />
+                        </div>
+                    </div>
+                    <div className="w-[30%] p-3 flex flex-col justify-between items-end text-right">
+                        <div className="font-semibold text-[11px]">For LUMI WAVES AUTOMATION</div>
+                        {/* Placeholder for Signature Image if needed */}
+                        <div className="mt-20 text-[11px] text-gray-700">Authorized Signatory</div>
+                    </div>
+                </div>
+
+                {/* FOOTER */}
+                <div className="mt-3 text-[10px] font-semibold text-gray-800 flex gap-1.5 justify-center">
+                    <span>Page 1/1</span>
+                    <span>•</span>
+                    <span>This is a digitally signed document.</span>
+                </div>
+
             </div>
         </div>
     );
 };
 
-export default EstimationPage;
+export default EstimationPage;
