@@ -13,33 +13,88 @@ interface WorkItem {
     id: string;
     description: string;
     hsn: string;
-    rate: number;
-    qty: number;
+    rate: number | string;
+    qty: number | string;
     unit: string;
-    cgst: number;
-    sgst: number;
+    cgst: number | string;
+    sgst: number | string;
 }
 
 function numberToWords(num: number): string {
-    if (num <= 0) return "Zero Rupees";
-    const a = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-    const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    if (isNaN(num) || num <= 0) return "Zero Rupees";
 
-    function convertToWords(n: number): string {
-        if (n < 20) return a[n];
-        if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? "-" + a[n % 10] : "");
-        if (n < 1000) return a[Math.floor(n / 100)] + " Hundred" + (n % 100 !== 0 ? " And " + convertToWords(n % 100) : "");
-        if (n < 1000000) return convertToWords(Math.floor(n / 1000)) + " Thousand" + (n % 1000 !== 0 ? (n % 1000 < 100 ? " And " : ", ") + convertToWords(n % 1000) : "");
-        if (n < 1000000000) return convertToWords(Math.floor(n / 1000000)) + " Million" + (n % 1000000 !== 0 ? ", " + convertToWords(n % 1000000) : "");
-        return "";
+    const ones = [
+        "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+        "Seventeen", "Eighteen", "Nineteen"
+    ];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+    function convertTwoDigits(n: number): string {
+        if (n < 20) return ones[n];
+        const t = tens[Math.floor(n / 10)];
+        const o = ones[n % 10];
+        return o ? `${t}-${o}` : t;
     }
 
-    const numStr = Math.max(0, num).toFixed(2);
-    const [rsStr, pStr] = numStr.split('.');
-    const rs = parseInt(rsStr, 10);
-    const p = parseInt(pStr, 10);
-    let res = convertToWords(rs) + " Rupees";
-    if (p > 0) res += " and " + convertToWords(p) + " Paise";
+    function convertThreeDigits(n: number): string {
+        if (n === 0) return "";
+        const hundred = Math.floor(n / 100);
+        const rest = n % 100;
+        let str = "";
+        if (hundred > 0) {
+            str += `${ones[hundred]} Hundred`;
+        }
+        if (rest > 0) {
+            if (str) str += " ";
+            str += convertTwoDigits(rest);
+        }
+        return str;
+    }
+
+    function convertIndianNumber(n: number): string {
+        if (n === 0) return "";
+        let str = "";
+
+        const crore = Math.floor(n / 10000000);
+        n %= 10000000;
+
+        const lakh = Math.floor(n / 100000);
+        n %= 100000;
+
+        const thousand = Math.floor(n / 1000);
+        n %= 1000;
+
+        const remainder = n;
+
+        if (crore > 0) {
+            str += (crore >= 100 ? convertIndianNumber(crore) : (crore < 20 ? ones[crore] : convertTwoDigits(crore))) + " Crore ";
+        }
+        if (lakh > 0) {
+            str += convertTwoDigits(lakh) + " Lakh ";
+        }
+        if (thousand > 0) {
+            str += convertTwoDigits(thousand) + " Thousand ";
+        }
+        if (remainder > 0) {
+            str += convertThreeDigits(remainder) + " ";
+        }
+
+        return str.trim();
+    }
+
+    const rounded = Math.round(num * 100) / 100;
+    const rs = Math.floor(rounded);
+    const p = Math.round((rounded - rs) * 100);
+
+    let res = convertIndianNumber(rs);
+    if (!res) res = "Zero";
+    res += (rs === 1 ? " Rupee" : " Rupees");
+
+    if (p > 0) {
+        res += " and " + convertTwoDigits(p) + (p === 1 ? " Paisa" : " Paise");
+    }
+
     return res;
 }
 
@@ -115,12 +170,14 @@ const EstimationPage = () => {
     const [dispatchFrom, setDispatchFrom] = useState("No:64 Murugan Koil Street, North Bharathipuram,\nShanmugapuram, Pondicherry - 605009");
     const [reference, setReference] = useState("");
     
-    const [bankName, setBankName] = useState("Indian Bank");
-    const [accountNo, setAccountNo] = useState("1234567890");
-    const [ifsc, setIfsc] = useState("IDIB000S123");
+    const [bankName, setBankName] = useState("Punjab National Bank");
+    const [accountNo, setAccountNo] = useState("1816200100008474");
+    const [ifsc, setIfsc] = useState("PUNB0181620");
     const [branch, setBranch] = useState("PONDICHERRY");
 
     const [isExportingPDF, setIsExportingPDF] = useState(false);
+    const [amountInWords, setAmountInWords] = useState("");
+    const [isCustomWords, setIsCustomWords] = useState(false);
 
     const [workItems, setWorkItems] = useState<WorkItem[]>([
         { id: "1", description: "3.2 KW ON GRID SOLAR SYSTEM INSTALLATION WORK", hsn: "998731", rate: 58000, qty: 3.2, unit: "UNT", cgst: 9, sgst: 9 },
@@ -169,19 +226,24 @@ const EstimationPage = () => {
     let totalQty = 0;
 
     const hsnTotals = workItems.reduce((acc, item) => {
-        const taxable = item.rate * item.qty;
-        const cgstAmt = taxable * item.cgst / 100;
-        const sgstAmt = taxable * item.sgst / 100;
+        const qty = parseFloat(String(item.qty)) || 0;
+        const rate = parseFloat(String(item.rate)) || 0;
+        const cgstRate = parseFloat(String(item.cgst)) || 0;
+        const sgstRate = parseFloat(String(item.sgst)) || 0;
+
+        const taxable = rate * qty;
+        const cgstAmt = taxable * cgstRate / 100;
+        const sgstAmt = taxable * sgstRate / 100;
         
         totalTaxable += taxable;
         totalCgst += cgstAmt;
         totalSgst += sgstAmt;
-        totalQty += item.qty;
+        totalQty += qty;
 
         if (!item.hsn) return acc;
         
         if (!acc[item.hsn]) {
-            acc[item.hsn] = { taxable: 0, cgstAmount: 0, sgstAmount: 0, cgstRate: item.cgst, sgstRate: item.sgst };
+            acc[item.hsn] = { taxable: 0, cgstAmount: 0, sgstAmount: 0, cgstRate, sgstRate };
         }
         acc[item.hsn].taxable += taxable;
         acc[item.hsn].cgstAmount += cgstAmt;
@@ -191,6 +253,12 @@ const EstimationPage = () => {
     }, {} as Record<string, { taxable: number, cgstAmount: number, sgstAmount: number, cgstRate: number, sgstRate: number }>);
 
     const grandTotal = totalTaxable + totalCgst + totalSgst;
+
+    useEffect(() => {
+        if (!isCustomWords) {
+            setAmountInWords(`INR ${numberToWords(grandTotal)} Only.`);
+        }
+    }, [grandTotal, isCustomWords]);
 
     const handleDownloadPDF = async () => {
         const element = printRef.current;
@@ -361,22 +429,27 @@ const EstimationPage = () => {
                     <thead>
                         <tr className="border-b border-black">
                             <th className="border-r border-black p-1.5 text-center font-bold w-[4%]">#</th>
-                            <th className="border-r border-black p-1.5 text-left font-bold w-[26%]">Item</th>
+                            <th className="border-r border-black p-1.5 text-left font-bold w-[25%]">Item</th>
                             <th className="border-r border-black p-1.5 text-center font-bold w-[9%]">HSN/SAC</th>
                             <th className="border-r border-black p-1.5 text-right font-bold w-[10%]">Rate / Item</th>
-                            <th className="border-r border-black p-1.5 text-center font-bold w-[9%]">Qty</th>
+                            <th className="border-r border-black p-1.5 text-center font-bold w-[11%]">Qty / Unit</th>
                             <th className="border-r border-black p-1.5 text-right font-bold w-[11%]">Taxable Value</th>
-                            <th className="border-r border-black p-1.5 text-right font-bold w-[10%]">CGST</th>
-                            <th className="border-r border-black p-1.5 text-right font-bold w-[10%]">SGST</th>
+                            <th className="border-r border-black p-1.5 text-right font-bold w-[9%]">CGST</th>
+                            <th className="border-r border-black p-1.5 text-right font-bold w-[9%]">SGST</th>
                             <th className="p-1.5 text-right font-bold w-[11%]">Amount</th>
                             <th className="p-1.5 w-[3%] border-l border-black print:hidden" data-html2canvas-ignore="true"></th>
                         </tr>
                     </thead>
                     <tbody>
                         {workItems.map((item, index) => {
-                            const taxableValue = item.rate * item.qty;
-                            const cgstAmount = taxableValue * item.cgst / 100;
-                            const sgstAmount = taxableValue * item.sgst / 100;
+                            const qty = parseFloat(String(item.qty)) || 0;
+                            const rate = parseFloat(String(item.rate)) || 0;
+                            const cgstRate = parseFloat(String(item.cgst)) || 0;
+                            const sgstRate = parseFloat(String(item.sgst)) || 0;
+
+                            const taxableValue = rate * qty;
+                            const cgstAmount = taxableValue * cgstRate / 100;
+                            const sgstAmount = taxableValue * sgstRate / 100;
                             const amount = taxableValue + cgstAmount + sgstAmount;
                             return (
                                 <tr key={item.id} className="align-top border-b border-gray-200">
@@ -388,28 +461,28 @@ const EstimationPage = () => {
                                         <EditableCell isExportingPDF={isExportingPDF} value={item.hsn} onChange={v => updateWorkItem(item.id, "hsn", v)} align="center" />
                                     </td>
                                     <td className="border-r border-black p-1.5 text-right">
-                                        <EditableCell isExportingPDF={isExportingPDF} value={String(item.rate)} onChange={v => updateWorkItem(item.id, "rate", Number(v))} type="number" align="right" />
+                                        <EditableCell isExportingPDF={isExportingPDF} value={String(item.rate ?? "")} onChange={v => updateWorkItem(item.id, "rate", v)} type="text" align="right" placeholder="0" />
                                     </td>
-                                    <td className="border-r border-black p-1.5 text-center flex flex-col items-center justify-center gap-0.5">
-                                        <div className="flex w-full items-center justify-center">
-                                            <EditableCell isExportingPDF={isExportingPDF} value={String(item.qty)} onChange={v => updateWorkItem(item.id, "qty", Number(v))} type="text" align="center" className="w-10" />
-                                            <EditableCell isExportingPDF={isExportingPDF} value={item.unit} onChange={v => updateWorkItem(item.id, "unit", v)} align="center" className="w-10" />
+                                    <td className="border-r border-black p-1 text-center align-middle">
+                                        <div className="flex w-full items-center justify-center gap-1">
+                                            <EditableCell isExportingPDF={isExportingPDF} value={String(item.qty ?? "")} onChange={v => updateWorkItem(item.id, "qty", v)} type="text" align="center" className="w-12 text-center font-medium" placeholder="Qty" />
+                                            <EditableCell isExportingPDF={isExportingPDF} value={item.unit} onChange={v => updateWorkItem(item.id, "unit", v)} align="center" className="w-10 text-center uppercase font-medium" placeholder="UNT" />
                                         </div>
                                     </td>
-                                    <td className="border-r border-black p-1.5 text-right font-medium">{taxableValue.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                    <td className="border-r border-black p-1.5 text-right font-medium">{taxableValue.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                     <td className="border-r border-black p-1.5 text-right font-medium">
-                                        {cgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                        <div className="text-[9px] text-gray-500 font-normal mt-0.5">
-                                            (<EditableCell isExportingPDF={isExportingPDF} value={String(item.cgst)} onChange={v => updateWorkItem(item.id, "cgst", Number(v))} type="text" align="center" className="inline w-6 p-0 h-4"/>%)
+                                        {cgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        <div className="text-[9px] text-gray-500 font-normal mt-0.5 flex items-center justify-end">
+                                            (<EditableCell isExportingPDF={isExportingPDF} value={String(item.cgst ?? "")} onChange={v => updateWorkItem(item.id, "cgst", v)} type="text" align="center" className="inline w-6 p-0 h-4 text-center"/>%)
                                         </div>
                                     </td>
                                     <td className="border-r border-black p-1.5 text-right font-medium">
-                                        {sgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2})}
-                                        <div className="text-[9px] text-gray-500 font-normal mt-0.5">
-                                            (<EditableCell isExportingPDF={isExportingPDF} value={String(item.sgst)} onChange={v => updateWorkItem(item.id, "sgst", Number(v))} type="text" align="center" className="inline w-6 p-0 h-4"/>%)
+                                        {sgstAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                                        <div className="text-[9px] text-gray-500 font-normal mt-0.5 flex items-center justify-end">
+                                            (<EditableCell isExportingPDF={isExportingPDF} value={String(item.sgst ?? "")} onChange={v => updateWorkItem(item.id, "sgst", v)} type="text" align="center" className="inline w-6 p-0 h-4 text-center"/>%)
                                         </div>
                                     </td>
-                                    <td className="p-1.5 text-right font-semibold">{amount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                                    <td className="p-1.5 text-right font-semibold">{amount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</td>
                                     <td className="p-1.5 text-center border-l border-black print:hidden" data-html2canvas-ignore="true">
                                         <button onClick={() => removeWorkItem(item.id)}><Trash2 className="w-3.5 h-3.5 text-red-500 hover:text-red-700" /></button>
                                     </td>
@@ -443,10 +516,29 @@ const EstimationPage = () => {
                     <div className="w-[65%] border-r border-black p-2 flex flex-col justify-between">
                         <div>
                             <div className="mb-1">
-                                Total Items / Qty : {workItems.length} / {totalQty}
+                                Total Items / Qty : {workItems.length} / {parseFloat(totalQty.toFixed(4))}
                             </div>
                             <div className="mb-2">
-                                Total amount (in words): <span className="font-semibold text-black">INR {numberToWords(grandTotal)} Only.</span>
+                                <div className="flex items-center gap-1.5">
+                                    <span className="shrink-0">Total amount (in words):</span>
+                                    <div className="flex-1 min-w-[200px]">
+                                        <EditableCell
+                                            isExportingPDF={isExportingPDF}
+                                            value={amountInWords}
+                                            onChange={(v) => {
+                                                if (v.trim() === "") {
+                                                    setIsCustomWords(false);
+                                                    setAmountInWords(`INR ${numberToWords(grandTotal)} Only.`);
+                                                } else {
+                                                    setIsCustomWords(true);
+                                                    setAmountInWords(v);
+                                                }
+                                            }}
+                                            className="font-semibold text-black"
+                                            placeholder="INR ... Only."
+                                        />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         <div>
@@ -564,4 +656,4 @@ const EstimationPage = () => {
     );
 };
 
-export default EstimationPage;
+export default EstimationPage;

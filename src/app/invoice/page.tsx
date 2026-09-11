@@ -288,9 +288,10 @@ export default function InvoiceGenerator() {
                         <Label className="text-xs">Quantity</Label>
                         <Input
                           type="number"
-                          min="1"
+                          min="0"
+                          step="any"
                           value={item.quantity}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateItem(item.id, "quantity", Number.parseInt(e.target.value) || 1)}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => updateItem(item.id, "quantity", Number.parseFloat(e.target.value) || 0)}
                           className="text-sm"
                         />
                       </div>

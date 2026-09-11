@@ -12,33 +12,85 @@ import ToolHeader from "@/components/Header/Header";
 interface EstimateItem {
     id: string;
     description: string;
-    quantity: number;
-    unitPrice: number;
+    quantity: number | string;
+    unitPrice: number | string;
 }
 
 function numberToWords(num: number): string {
-    if (num <= 0) return "Zero Rupees";
-    const a = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen", "Seventeen", "Eighteen", "Nineteen"];
-    const b = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+    if (isNaN(num) || num <= 0) return "Zero Rupees";
 
-    function convertToWords(n: number): string {
-        if (n < 20) return a[n];
-        if (n < 100) return b[Math.floor(n / 10)] + (n % 10 !== 0 ? "-" + a[n % 10] : "");
-        if (n < 1000) return a[Math.floor(n / 100)] + " Hundred" + (n % 100 !== 0 ? " And " + convertToWords(n % 100) : "");
-        if (n < 1000000) return convertToWords(Math.floor(n / 1000)) + " Thousand" + (n % 1000 !== 0 ? (n % 1000 < 100 ? " And " : ", ") + convertToWords(n % 1000) : "");
-        if (n < 1000000000) return convertToWords(Math.floor(n / 1000000)) + " Million" + (n % 1000000 !== 0 ? ", " + convertToWords(n % 1000000) : "");
-        return "";
+    const ones = [
+        "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine",
+        "Ten", "Eleven", "Twelve", "Thirteen", "Fourteen", "Fifteen", "Sixteen",
+        "Seventeen", "Eighteen", "Nineteen"
+    ];
+    const tens = ["", "", "Twenty", "Thirty", "Forty", "Fifty", "Sixty", "Seventy", "Eighty", "Ninety"];
+
+    function convertTwoDigits(n: number): string {
+        if (n < 20) return ones[n];
+        const t = tens[Math.floor(n / 10)];
+        const o = ones[n % 10];
+        return o ? `${t}-${o}` : t;
     }
 
-    const numStr = Math.max(0, num).toFixed(2);
-    const [rsStr, pStr] = numStr.split('.');
-    let rs = parseInt(rsStr, 10);
-    let p = parseInt(pStr, 10);
+    function convertThreeDigits(n: number): string {
+        if (n === 0) return "";
+        const hundred = Math.floor(n / 100);
+        const rest = n % 100;
+        let str = "";
+        if (hundred > 0) {
+            str += `${ones[hundred]} Hundred`;
+        }
+        if (rest > 0) {
+            if (str) str += " ";
+            str += convertTwoDigits(rest);
+        }
+        return str;
+    }
 
-    let res = convertToWords(rs) + " Rupees";
+    function convertIndianNumber(n: number): string {
+        if (n === 0) return "";
+        let str = "";
+
+        const crore = Math.floor(n / 10000000);
+        n %= 10000000;
+
+        const lakh = Math.floor(n / 100000);
+        n %= 100000;
+
+        const thousand = Math.floor(n / 1000);
+        n %= 1000;
+
+        const remainder = n;
+
+        if (crore > 0) {
+            str += (crore >= 100 ? convertIndianNumber(crore) : (crore < 20 ? ones[crore] : convertTwoDigits(crore))) + " Crore ";
+        }
+        if (lakh > 0) {
+            str += convertTwoDigits(lakh) + " Lakh ";
+        }
+        if (thousand > 0) {
+            str += convertTwoDigits(thousand) + " Thousand ";
+        }
+        if (remainder > 0) {
+            str += convertThreeDigits(remainder) + " ";
+        }
+
+        return str.trim();
+    }
+
+    const rounded = Math.round(num * 100) / 100;
+    const rs = Math.floor(rounded);
+    const p = Math.round((rounded - rs) * 100);
+
+    let res = convertIndianNumber(rs);
+    if (!res) res = "Zero";
+    res += (rs === 1 ? " Rupee" : " Rupees");
+
     if (p > 0) {
-        res += " and " + convertToWords(p) + " Paise";
+        res += " and " + convertTwoDigits(p) + (p === 1 ? " Paisa" : " Paise");
     }
+
     return res;
 }
 
@@ -106,6 +158,8 @@ const ZenithEstimationPage = () => {
     const [quotationDate, setQuotationDate] = useState("");
     const [customerDetails, setCustomerDetails] = useState("");
     const [isExportingPDF, setIsExportingPDF] = useState(false);
+    const [amountInWords, setAmountInWords] = useState("");
+    const [isCustomWords, setIsCustomWords] = useState(false);
 
     const [items, setItems] = useState<EstimateItem[]>([
         { id: "1", description: "", quantity: 1, unitPrice: 0 },
@@ -147,10 +201,22 @@ const ZenithEstimationPage = () => {
 
     const calculateTotal = () => {
         return items.reduce(
-            (sum, item) => sum + item.quantity * item.unitPrice,
+            (sum, item) => {
+                const qty = parseFloat(String(item.quantity)) || 0;
+                const price = parseFloat(String(item.unitPrice)) || 0;
+                return sum + qty * price;
+            },
             0
         );
     };
+
+    const total = calculateTotal();
+
+    useEffect(() => {
+        if (!isCustomWords) {
+            setAmountInWords(numberToWords(total));
+        }
+    }, [total, isCustomWords]);
 
     const handleDownloadPDF = async () => {
         const element = printRef.current;
@@ -383,23 +449,25 @@ const ZenithEstimationPage = () => {
                                 <td className="border-b border-r border-black p-2 align-middle">
                                     <EditableCell
                                         isExportingPDF={isExportingPDF}
-                                        type="number"
+                                        type="text"
                                         align="center"
-                                        value={String(item.quantity || "")}
-                                        onChange={(v) => updateItem(item.id, "quantity", Number(v))}
+                                        placeholder="1"
+                                        value={String(item.quantity ?? "")}
+                                        onChange={(v) => updateItem(item.id, "quantity", v)}
                                     />
                                 </td>
                                 <td className="border-b border-r border-black p-2 align-middle">
                                     <EditableCell
                                         isExportingPDF={isExportingPDF}
-                                        type="number"
+                                        type="text"
                                         align="right"
-                                        value={String(item.unitPrice || "")}
-                                        onChange={(v) => updateItem(item.id, "unitPrice", Number(v))}
+                                        placeholder="0"
+                                        value={String(item.unitPrice ?? "")}
+                                        onChange={(v) => updateItem(item.id, "unitPrice", v)}
                                     />
                                 </td>
                                 <td className="border-b border-r border-black p-2 text-right text-[13px] align-middle font-medium">
-                                    ₹{(item.quantity * item.unitPrice).toFixed(2)}
+                                    ₹{((parseFloat(String(item.quantity)) || 0) * (parseFloat(String(item.unitPrice)) || 0)).toFixed(2)}
                                 </td>
                                 <td className="border-b border-black p-2 text-center align-middle print:hidden border-r-0" data-html2canvas-ignore="true">
                                     <button onClick={() => removeItem(item.id)} className="inline-flex items-center justify-center">
@@ -424,7 +492,21 @@ const ZenithEstimationPage = () => {
                         <tr>
                             <td className="border-r border-b border-black p-3 w-[60%] align-top">
                                 <p className="text-gray-800 text-[11px] mb-1 font-medium">Estimate Amount in Words</p>
-                                <p className="font-semibold text-black leading-normal">{numberToWords(calculateTotal())}</p>
+                                <EditableCell
+                                    isExportingPDF={isExportingPDF}
+                                    value={amountInWords}
+                                    onChange={(val) => {
+                                        if (val.trim() === "") {
+                                            setIsCustomWords(false);
+                                            setAmountInWords(numberToWords(calculateTotal()));
+                                        } else {
+                                            setIsCustomWords(true);
+                                            setAmountInWords(val);
+                                        }
+                                    }}
+                                    className="font-semibold text-black leading-normal"
+                                    placeholder="Amount in words..."
+                                />
                             </td>
                             <td className="border-b border-black p-0 w-[40%] align-top">
                                 <table className="w-full h-full border-collapse">
